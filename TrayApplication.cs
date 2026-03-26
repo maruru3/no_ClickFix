@@ -115,6 +115,14 @@ public sealed class TrayApplication : ApplicationContext
             _trayIcon.ShowBalloonTip(2000, "ClickFixGuard",
                 "クリップボードをクリアしました。安全です。", ToolTipIcon.Info);
         }
+        else if (dialog.AddToAllowListRequested && dialog.AllowListPattern != null)
+        {
+            _clipboardMonitor.AllowList.AddPattern(dialog.AllowListPattern);
+            _clipboardMonitor.ClearClipboard();
+            _trayIcon.ShowBalloonTip(3000, "ClickFixGuard",
+                $"許可リストに追加しました。\nパターン: {dialog.AllowListPattern}",
+                ToolTipIcon.Info);
+        }
 
         _isShowingDialog = false;
     }
@@ -172,6 +180,11 @@ public sealed class TrayApplication : ApplicationContext
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         });
 
+        menu.Items.Add("許可リスト編集...", null, (_, _) =>
+        {
+            ShowAllowListEditor();
+        });
+
         menu.Items.Add(new ToolStripSeparator());
 
         menu.Items.Add($"ブロック回数: {_blockedCount} / 警告回数: {_warningCount}", null, null!).Enabled = false;
@@ -210,6 +223,100 @@ public sealed class TrayApplication : ApplicationContext
         };
 
         return menu;
+    }
+
+    private void ShowAllowListEditor()
+    {
+        var allowList = _clipboardMonitor.AllowList;
+        using var form = new Form
+        {
+            Text = "ClickFixGuard - 許可リスト編集",
+            Size = new Size(500, 400),
+            StartPosition = FormStartPosition.CenterScreen,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            BackColor = Color.FromArgb(30, 30, 30),
+            ForeColor = Color.White
+        };
+
+        var label = new Label
+        {
+            Text = "許可リストのパターン（正規表現、1行1パターン）:",
+            Font = new Font("Segoe UI", 10),
+            Location = new Point(15, 10),
+            AutoSize = true
+        };
+
+        var textBox = new TextBox
+        {
+            Text = string.Join(Environment.NewLine, allowList.Patterns),
+            Font = new Font("Consolas", 10),
+            ForeColor = Color.Lime,
+            BackColor = Color.FromArgb(20, 20, 20),
+            Multiline = true,
+            ScrollBars = ScrollBars.Vertical,
+            Location = new Point(15, 35),
+            Size = new Size(455, 240),
+            WordWrap = false
+        };
+
+        var enabledCheck = new CheckBox
+        {
+            Text = "許可リストを有効にする",
+            Font = new Font("Segoe UI", 10),
+            Checked = allowList.Enabled,
+            Location = new Point(15, 285),
+            AutoSize = true,
+            ForeColor = Color.White
+        };
+
+        var saveButton = new Button
+        {
+            Text = "保存して閉じる",
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            BackColor = Color.FromArgb(0, 100, 50),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Location = new Point(15, 320),
+            Size = new Size(200, 35)
+        };
+        saveButton.Click += (_, _) =>
+        {
+            // パターンを更新
+            var newPatterns = textBox.Text
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToList();
+
+            // 既存パターンをクリアして再追加
+            while (allowList.Patterns.Count > 0)
+                allowList.RemovePattern(allowList.Patterns[0]);
+            foreach (var p in newPatterns)
+                allowList.AddPattern(p);
+
+            allowList.SetEnabled(enabledCheck.Checked);
+
+            MessageBox.Show($"{newPatterns.Count}件のパターンを保存しました。",
+                "ClickFixGuard", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            form.Close();
+        };
+
+        var cancelButton = new Button
+        {
+            Text = "キャンセル",
+            Font = new Font("Segoe UI", 10),
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.LightGray,
+            FlatStyle = FlatStyle.Flat,
+            Location = new Point(230, 320),
+            Size = new Size(140, 35)
+        };
+        cancelButton.Click += (_, _) => form.Close();
+
+        form.Controls.AddRange([label, textBox, enabledCheck, saveButton, cancelButton]);
+        form.ShowDialog();
     }
 
     // === アイコン生成（起動時に1回だけ呼ばれる） ===

@@ -13,6 +13,12 @@ public sealed class WarningDialog : Form
     /// <summary>ユーザーが「クリップボードをクリア」を選んだ</summary>
     public bool ClearClipboardRequested { get; private set; }
 
+    /// <summary>ユーザーが「許可リストに追加」を選んだ</summary>
+    public bool AddToAllowListRequested { get; private set; }
+
+    /// <summary>許可リストに追加するパターン</summary>
+    public string? AllowListPattern { get; private set; }
+
     public WarningDialog(ThreatPatterns.ThreatMatch threat, string clipboardContent, string triggerKey)
     {
         _threat = threat;
@@ -132,12 +138,12 @@ public sealed class WarningDialog : Form
         };
         clipGroup.Controls.Add(clipText);
 
-        // ボタンパネル
+        // ボタンパネル（2段）
         var buttonPanel = new Panel
         {
             Dock = DockStyle.Bottom,
-            Height = 60,
-            Padding = new Padding(15, 10, 15, 10)
+            Height = 100,
+            Padding = new Padding(15, 5, 15, 5)
         };
 
         var clearButton = new Button
@@ -147,8 +153,8 @@ public sealed class WarningDialog : Form
             BackColor = Color.FromArgb(0, 120, 60),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Size = new Size(340, 40),
-            Location = new Point(15, 10),
+            Size = new Size(570, 38),
+            Location = new Point(15, 5),
             Cursor = Cursors.Hand
         };
         clearButton.Click += (_, _) =>
@@ -158,15 +164,46 @@ public sealed class WarningDialog : Form
             Close();
         };
 
+        var allowButton = new Button
+        {
+            Text = "許可リストに追加して閉じる",
+            Font = new Font("Segoe UI", 9),
+            BackColor = Color.FromArgb(40, 80, 120),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Size = new Size(270, 38),
+            Location = new Point(15, 50),
+            Cursor = Cursors.Hand
+        };
+        allowButton.Click += (_, _) =>
+        {
+            var pattern = AllowList.CreateExactPattern(_clipboardContent);
+            var confirm = MessageBox.Show(
+                $"以下のパターンを許可リストに追加します:\n\n{pattern}\n\n" +
+                "追加すると、このコマンドでは今後警告が出なくなります。\n" +
+                "本当にこのコマンドは安全ですか？",
+                "ClickFixGuard - 許可リスト追加確認",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+            if (confirm == DialogResult.Yes)
+            {
+                AddToAllowListRequested = true;
+                AllowListPattern = pattern;
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+        };
+
         var ignoreButton = new Button
         {
             Text = "無視して閉じる",
-            Font = new Font("Segoe UI", 10),
+            Font = new Font("Segoe UI", 9),
             BackColor = Color.FromArgb(80, 80, 80),
             ForeColor = Color.LightGray,
             FlatStyle = FlatStyle.Flat,
-            Size = new Size(200, 40),
-            Location = new Point(380, 10),
+            Size = new Size(270, 38),
+            Location = new Point(315, 50),
             Cursor = Cursors.Hand
         };
         ignoreButton.Click += (_, _) =>
@@ -190,6 +227,7 @@ public sealed class WarningDialog : Form
         };
 
         buttonPanel.Controls.Add(clearButton);
+        buttonPanel.Controls.Add(allowButton);
         buttonPanel.Controls.Add(ignoreButton);
 
         // コントロール追加（下から順に）

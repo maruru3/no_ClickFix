@@ -9,6 +9,7 @@ namespace ClickFixGuard;
 public sealed class ClipboardMonitor : IDisposable
 {
     private readonly System.Windows.Forms.Timer _timer;
+    private readonly AllowList _allowList;
     private string _lastClipboardText = "";
     private ThreatPatterns.ThreatMatch? _currentThreat;
 
@@ -24,8 +25,12 @@ public sealed class ClipboardMonitor : IDisposable
     /// <summary>現在のクリップボード内容</summary>
     public string CurrentClipboardText => _lastClipboardText;
 
-    public ClipboardMonitor(int intervalMs = 500)
+    /// <summary>許可リストへのアクセス</summary>
+    public AllowList AllowList => _allowList;
+
+    public ClipboardMonitor(int intervalMs = 500, AllowList? allowList = null)
     {
+        _allowList = allowList ?? new AllowList();
         _timer = new System.Windows.Forms.Timer { Interval = intervalMs };
         _timer.Tick += OnTimerTick;
     }
@@ -48,6 +53,17 @@ public sealed class ClipboardMonitor : IDisposable
                 return;
 
             _lastClipboardText = text;
+
+            // 許可リストに一致する場合はスキップ
+            if (_allowList.IsAllowed(text))
+            {
+                if (_currentThreat != null)
+                {
+                    _currentThreat = null;
+                    ThreatCleared?.Invoke();
+                }
+                return;
+            }
 
             var threat = ThreatPatterns.Analyze(text);
             if (threat != null)
