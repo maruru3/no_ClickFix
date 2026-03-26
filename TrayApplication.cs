@@ -224,8 +224,7 @@ public sealed class TrayApplication : ApplicationContext
         };
         g.FillPolygon(Brushes.ForestGreen, points);
         g.DrawString("G", new Font("Segoe UI", 12, FontStyle.Bold), Brushes.White, 7, 6);
-        var icon = Icon.FromHandle(bmp.GetHicon());
-        return (Icon)icon.Clone(); // Clone to own the handle
+        return CloneAndReleaseHicon(bmp);
     }
 
     private static Icon CreateWarningIcon()
@@ -238,8 +237,7 @@ public sealed class TrayApplication : ApplicationContext
         };
         g.FillPolygon(Brushes.Orange, points);
         g.DrawString("!", new Font("Segoe UI", 14, FontStyle.Bold), Brushes.Black, 9, 4);
-        var icon = Icon.FromHandle(bmp.GetHicon());
-        return (Icon)icon.Clone();
+        return CloneAndReleaseHicon(bmp);
     }
 
     private static Icon CreateDangerIcon()
@@ -252,8 +250,17 @@ public sealed class TrayApplication : ApplicationContext
         };
         g.FillPolygon(Brushes.Red, points);
         g.DrawString("X", new Font("Segoe UI", 12, FontStyle.Bold), Brushes.White, 8, 6);
-        var icon = Icon.FromHandle(bmp.GetHicon());
-        return (Icon)icon.Clone();
+        return CloneAndReleaseHicon(bmp);
+    }
+
+    /// <summary>BitmapからIcon生成後、元HICONを確実に解放する</summary>
+    private static Icon CloneAndReleaseHicon(Bitmap bmp)
+    {
+        IntPtr hIcon = bmp.GetHicon();
+        var icon = Icon.FromHandle(hIcon);
+        var clone = (Icon)icon.Clone();
+        DestroyIcon(hIcon);
+        return clone;
     }
 
     protected override void Dispose(bool disposing)

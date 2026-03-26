@@ -50,10 +50,10 @@ public sealed class KeyboardHook : IDisposable
     private readonly Func<bool> _hasThreat;
     private readonly Func<ThreatPatterns.ThreatLevel> _getThreatLevel;
 
-    /// <summary>Win+R が危険な状態で押された（ブロックされた）</summary>
+    /// <summary>Win+R が危険な状態で検知された（Criticalならブロック、Suspiciousなら警告のみ）</summary>
     public event Action<string>? DangerousWinRDetected;
 
-    /// <summary>Win+X が危険な状態で押された（ブロックされた）</summary>
+    /// <summary>Win+X が危険な状態で検知された（Criticalならブロック、Suspiciousなら警告のみ）</summary>
     public event Action<string>? DangerousWinXDetected;
 
     /// <param name="hasThreat">現在クリップボードに脅威があるか</param>
