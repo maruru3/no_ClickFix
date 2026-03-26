@@ -216,7 +216,7 @@ public sealed class TrayApplication : ApplicationContext
 
     private static Icon CreateShieldIcon()
     {
-        var bmp = new Bitmap(32, 32);
+        using var bmp = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         var points = new Point[] {
@@ -229,7 +229,7 @@ public sealed class TrayApplication : ApplicationContext
 
     private static Icon CreateWarningIcon()
     {
-        var bmp = new Bitmap(32, 32);
+        using var bmp = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         var points = new Point[] {
@@ -242,7 +242,7 @@ public sealed class TrayApplication : ApplicationContext
 
     private static Icon CreateDangerIcon()
     {
-        var bmp = new Bitmap(32, 32);
+        using var bmp = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         var points = new Point[] {
@@ -256,11 +256,18 @@ public sealed class TrayApplication : ApplicationContext
     /// <summary>BitmapからIcon生成後、元HICONを確実に解放する</summary>
     private static Icon CloneAndReleaseHicon(Bitmap bmp)
     {
-        IntPtr hIcon = bmp.GetHicon();
-        var icon = Icon.FromHandle(hIcon);
-        var clone = (Icon)icon.Clone();
-        DestroyIcon(hIcon);
-        return clone;
+        IntPtr hIcon = IntPtr.Zero;
+        try
+        {
+            hIcon = bmp.GetHicon();
+            using var temp = Icon.FromHandle(hIcon);
+            return (Icon)temp.Clone();
+        }
+        finally
+        {
+            if (hIcon != IntPtr.Zero)
+                DestroyIcon(hIcon);
+        }
     }
 
     protected override void Dispose(bool disposing)
