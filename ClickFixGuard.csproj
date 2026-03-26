@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ClickFixGuard</AssemblyName>
+    <RootNamespace>ClickFixGuard</RootNamespace>
+    <Description>ClickFix攻撃検知・防御ツール - クリップボード監視とキーボードフックで危険なコマンド実行を阻止</Description>
+    <Version>1.0.0</Version>
+    <Company>no_ClickFix Project</Company>
+    <Product>ClickFixGuard</Product>
+  </PropertyGroup>
+
+</Project>
