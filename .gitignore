@@ -6,3 +6,8 @@ obj/
 *.exe
 *.dll
 *.pdb
+*.nupkg
+.env
+*.pfx
+*.snk
+publish/
