@@ -171,6 +171,19 @@ public sealed class WarningDialog : Form
         };
         ignoreButton.Click += (_, _) =>
         {
+            if (_threat.Level == ThreatPatterns.ThreatLevel.Critical)
+            {
+                var confirm = MessageBox.Show(
+                    "クリップボードには危険なコマンドが残ったままです。\n" +
+                    "本当に無視しますか？\n\n" +
+                    "「いいえ」を押してクリップボードをクリアすることを強く推奨します。",
+                    "ClickFixGuard - 最終確認",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2); // 「いいえ」をデフォルトに
+                if (confirm == DialogResult.No)
+                    return;
+            }
             ClearClipboardRequested = false;
             DialogResult = DialogResult.Cancel;
             Close();

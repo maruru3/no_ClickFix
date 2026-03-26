@@ -9,7 +9,7 @@
 
 Webサイトに偽のCAPTCHAやエラー画面を表示し、ユーザーに `Win+R → Ctrl+V → Enter` の操作を指示することで、クリップボードに仕込んだ悪意あるコマンドを実行させるソーシャルエンジニアリング攻撃です。
 
-2024年から急増し、ESETの報告では2025年中頃までに検出数が**500%増加**。2026年も最も活発な初期アクセス手法の一つとされています。
+2024年から急増し、[Recorded Future](https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos)の報告では2025年中頃までに検出数が急増。2026年も最も活発な初期アクセス手法の一つとされています（[Stormshield](https://www.stormshield.com/news/clickfix-technique-growing-cyberthreat/)）。
 
 ### 配布されるマルウェア
 Lumma Stealer, XWorm, VenomRAT, AsyncRAT, DarkGate, Danabot, NetSupport RAT, RedLine Stealer, ModeloRAT 等

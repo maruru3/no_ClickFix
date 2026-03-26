@@ -51,10 +51,10 @@ public sealed class KeyboardHook : IDisposable
     private readonly Func<ThreatPatterns.ThreatLevel> _getThreatLevel;
 
     /// <summary>Win+R が危険な状態で押された（ブロックされた）</summary>
-    public event Action<string>? DangerousWinRBlocked;
+    public event Action<string>? DangerousWinRDetected;
 
     /// <summary>Win+X が危険な状態で押された（ブロックされた）</summary>
-    public event Action<string>? DangerousWinXBlocked;
+    public event Action<string>? DangerousWinXDetected;
 
     /// <param name="hasThreat">現在クリップボードに脅威があるか</param>
     /// <param name="getThreatLevel">現在の脅威レベル</param>
@@ -94,13 +94,13 @@ public sealed class KeyboardHook : IDisposable
                     if (level == ThreatPatterns.ThreatLevel.Critical)
                     {
                         // Critical: キー入力をブロック
-                        DangerousWinRBlocked?.Invoke("Win+R");
+                        DangerousWinRDetected?.Invoke("Win+R");
                         return (IntPtr)1; // ブロック
                     }
                     else if (level == ThreatPatterns.ThreatLevel.Suspicious)
                     {
                         // Suspicious: 警告のみ（ブロックしない）
-                        DangerousWinRBlocked?.Invoke("Win+R");
+                        DangerousWinRDetected?.Invoke("Win+R");
                     }
                 }
 
@@ -109,12 +109,12 @@ public sealed class KeyboardHook : IDisposable
                 {
                     if (level == ThreatPatterns.ThreatLevel.Critical)
                     {
-                        DangerousWinXBlocked?.Invoke("Win+X");
+                        DangerousWinXDetected?.Invoke("Win+X");
                         return (IntPtr)1; // ブロック
                     }
                     else if (level == ThreatPatterns.ThreatLevel.Suspicious)
                     {
-                        DangerousWinXBlocked?.Invoke("Win+X");
+                        DangerousWinXDetected?.Invoke("Win+X");
                     }
                 }
             }

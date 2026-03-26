@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace ClickFixGuard;
 
 /// <summary>
@@ -6,6 +8,9 @@ namespace ClickFixGuard;
 /// </summary>
 public sealed class TrayApplication : ApplicationContext
 {
+    [DllImport("user32.dll")]
+    private static extern bool DestroyIcon(IntPtr handle);
+
     private readonly NotifyIcon _trayIcon;
     private readonly ClipboardMonitor _clipboardMonitor;
     private readonly KeyboardHook _keyboardHook;
@@ -13,8 +18,18 @@ public sealed class TrayApplication : ApplicationContext
     private int _blockedCount;
     private int _warningCount;
 
+    // アイコンは起動時に1回だけ生成して使い回す（GDIハンドルリーク防止）
+    private readonly Icon _iconSafe;
+    private readonly Icon _iconWarning;
+    private readonly Icon _iconDanger;
+
     public TrayApplication()
     {
+        // アイコン生成（1回だけ）
+        _iconSafe = CreateShieldIcon();
+        _iconWarning = CreateWarningIcon();
+        _iconDanger = CreateDangerIcon();
+
         // クリップボード監視
         _clipboardMonitor = new ClipboardMonitor(intervalMs: 500);
         _clipboardMonitor.ThreatDetected += OnThreatDetected;
@@ -25,13 +40,13 @@ public sealed class TrayApplication : ApplicationContext
             hasThreat: () => _clipboardMonitor.CurrentThreat != null,
             getThreatLevel: () => _clipboardMonitor.CurrentThreat?.Level ?? ThreatPatterns.ThreatLevel.Safe
         );
-        _keyboardHook.DangerousWinRBlocked += OnDangerousKeyBlocked;
-        _keyboardHook.DangerousWinXBlocked += OnDangerousKeyBlocked;
+        _keyboardHook.DangerousWinRDetected += OnDangerousKeyDetected;
+        _keyboardHook.DangerousWinXDetected += OnDangerousKeyDetected;
 
         // システムトレイ
         _trayIcon = new NotifyIcon
         {
-            Icon = CreateShieldIcon(),
+            Icon = _iconSafe,
             Text = "ClickFixGuard - 監視中",
             Visible = true,
             ContextMenuStrip = CreateContextMenu()
@@ -73,7 +88,7 @@ public sealed class TrayApplication : ApplicationContext
         UpdateTrayStatus(ThreatPatterns.ThreatLevel.Safe);
     }
 
-    private void OnDangerousKeyBlocked(string triggerKey)
+    private void OnDangerousKeyDetected(string triggerKey)
     {
         if (_isShowingDialog) return;
         _isShowingDialog = true;
@@ -114,9 +129,9 @@ public sealed class TrayApplication : ApplicationContext
         };
         _trayIcon.Icon = level switch
         {
-            ThreatPatterns.ThreatLevel.Critical => CreateDangerIcon(),
-            ThreatPatterns.ThreatLevel.Suspicious => CreateWarningIcon(),
-            _ => CreateShieldIcon()
+            ThreatPatterns.ThreatLevel.Critical => _iconDanger,
+            ThreatPatterns.ThreatLevel.Suspicious => _iconWarning,
+            _ => _iconSafe
         };
     }
 
@@ -197,20 +212,20 @@ public sealed class TrayApplication : ApplicationContext
         return menu;
     }
 
-    // === シンプルなアイコン生成（外部リソース不要） ===
+    // === アイコン生成（起動時に1回だけ呼ばれる） ===
 
     private static Icon CreateShieldIcon()
     {
         var bmp = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        // 緑の盾
         var points = new Point[] {
             new(16, 2), new(28, 8), new(28, 18), new(16, 30), new(4, 18), new(4, 8)
         };
         g.FillPolygon(Brushes.ForestGreen, points);
         g.DrawString("G", new Font("Segoe UI", 12, FontStyle.Bold), Brushes.White, 7, 6);
-        return Icon.FromHandle(bmp.GetHicon());
+        var icon = Icon.FromHandle(bmp.GetHicon());
+        return (Icon)icon.Clone(); // Clone to own the handle
     }
 
     private static Icon CreateWarningIcon()
@@ -223,7 +238,8 @@ public sealed class TrayApplication : ApplicationContext
         };
         g.FillPolygon(Brushes.Orange, points);
         g.DrawString("!", new Font("Segoe UI", 14, FontStyle.Bold), Brushes.Black, 9, 4);
-        return Icon.FromHandle(bmp.GetHicon());
+        var icon = Icon.FromHandle(bmp.GetHicon());
+        return (Icon)icon.Clone();
     }
 
     private static Icon CreateDangerIcon()
@@ -236,7 +252,8 @@ public sealed class TrayApplication : ApplicationContext
         };
         g.FillPolygon(Brushes.Red, points);
         g.DrawString("X", new Font("Segoe UI", 12, FontStyle.Bold), Brushes.White, 8, 6);
-        return Icon.FromHandle(bmp.GetHicon());
+        var icon = Icon.FromHandle(bmp.GetHicon());
+        return (Icon)icon.Clone();
     }
 
     protected override void Dispose(bool disposing)
@@ -246,6 +263,9 @@ public sealed class TrayApplication : ApplicationContext
             _trayIcon.Dispose();
             _clipboardMonitor.Dispose();
             _keyboardHook.Dispose();
+            _iconSafe.Dispose();
+            _iconWarning.Dispose();
+            _iconDanger.Dispose();
         }
         base.Dispose(disposing);
     }

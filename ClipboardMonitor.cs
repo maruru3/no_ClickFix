@@ -61,9 +61,13 @@ public sealed class ClipboardMonitor : IDisposable
                 ThreatCleared?.Invoke();
             }
         }
-        catch
+        catch (System.Runtime.InteropServices.ExternalException)
         {
-            // クリップボードがロック中の場合はスキップ
+            // クリップボードが他プロセスにロック中 — 次回ポーリングでリトライ
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ClickFixGuard] Clipboard poll error: {ex.Message}");
         }
     }
 
@@ -74,11 +78,14 @@ public sealed class ClipboardMonitor : IDisposable
         {
             Clipboard.Clear();
             _lastClipboardText = "";
+            bool hadThreat = _currentThreat != null;
             _currentThreat = null;
+            if (hadThreat)
+                ThreatCleared?.Invoke();
         }
-        catch
+        catch (Exception ex)
         {
-            // 失敗してもクラッシュしない
+            System.Diagnostics.Debug.WriteLine($"[ClickFixGuard] ClearClipboard failed: {ex.Message}");
         }
     }
 
